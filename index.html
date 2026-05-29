@@ -10,30 +10,51 @@
   <main id="app-shell">
     <section id="scene-wrap" aria-label="3D Maxwell equation visualization">
       <canvas id="maxwell-canvas"></canvas>
-      <div class="scene-badge">Gauss's Law for Electricity</div>
+      <div id="scene-badge" class="scene-badge">Gauss's Law for Electricity</div>
+      <div id="scene-status" class="scene-status">Interactive scene</div>
+      <div id="build-code" class="build-code" aria-label="Build code">M4X1</div>
     </section>
 
     <aside id="control-panel" aria-label="Visualization controls and explanation">
       <header class="hero-copy">
         <p class="eyebrow">Maxwell's Equations Visualized</p>
-        <h1>Electric charge makes space point outward.</h1>
-        <p>
+        <h1 id="scene-title">Electric charge makes space point outward.</h1>
+        <p id="scene-intro">
           A first interactive glimpse at Gauss's Law: a charge inside a transparent
           surface creates electric flux through that surface.
         </p>
       </header>
 
+      <nav class="equation-nav" aria-label="Choose a Maxwell equation scene">
+        <button class="equation-tab active" type="button" data-scene="gaussElectric">
+          <span>I</span>
+          Gauss: Electricity
+        </button>
+        <button class="equation-tab" type="button" data-scene="gaussMagnetic">
+          <span>II</span>
+          Gauss: Magnetism
+        </button>
+        <button class="equation-tab" type="button" data-scene="faraday">
+          <span>III</span>
+          Faraday
+        </button>
+        <button class="equation-tab" type="button" data-scene="ampereMaxwell">
+          <span>IV</span>
+          Ampère-Maxwell
+        </button>
+      </nav>
+
       <section class="equation-card">
-        <p class="equation-label">Differential form</p>
-        <div class="equation">∇ · <strong>E</strong> = ρ / ε₀</div>
-        <p>
+        <p id="equation-label" class="equation-label">Differential form</p>
+        <div id="equation" class="equation">∇ · <strong>E</strong> = ρ / ε₀</div>
+        <p id="equation-summary">
           Positive charge acts like a source of electric field. Negative charge acts
           like a sink. The more charge enclosed, the more electric field flows through
           the surrounding surface.
         </p>
       </section>
 
-      <section class="controls">
+      <section id="gauss-controls" class="controls">
         <label>
           Charge strength
           <input id="charge-strength" type="range" min="-5" max="5" step="0.1" value="2.5" />
@@ -56,9 +77,16 @@
         </label>
       </section>
 
+      <section id="placeholder-card" class="placeholder-card" hidden>
+        <p class="equation-label">Scene stub</p>
+        <p id="placeholder-copy">
+          This scene is staged in the navigation shell and ready for a full Three.js build.
+        </p>
+      </section>
+
       <section class="lesson-card">
-        <h2>What you are seeing</h2>
-        <p>
+        <h2 id="lesson-title">What you are seeing</h2>
+        <p id="lesson-copy">
           The glass sphere is not a physical object. It is an imaginary measuring
           surface. Gauss's Law says the net electric flux through that closed surface
           depends only on the charge inside it.
