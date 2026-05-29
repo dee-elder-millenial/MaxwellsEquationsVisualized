@@ -10,23 +10,27 @@
   <main id="app-shell">
     <section id="scene-wrap" aria-label="3D Maxwell equation visualization">
       <canvas id="maxwell-canvas"></canvas>
-      <div id="scene-badge" class="scene-badge">Gauss's Law for Electricity</div>
-      <div id="scene-status" class="scene-status">Interactive scene</div>
-      <div id="build-code" class="build-code" aria-label="Build code">T6N8</div>
+      <div id="scene-badge" class="scene-badge">Divergence Operator</div>
+      <div id="scene-status" class="scene-status">Interactive intro</div>
+      <div id="build-code" class="build-code" aria-label="Build code">D3V7</div>
     </section>
 
     <aside id="control-panel" aria-label="Visualization controls and explanation">
       <header class="hero-copy">
         <p class="eyebrow">Maxwell's Equations Visualized</p>
-        <h1 id="scene-title">Electric charge makes space point outward.</h1>
+        <h1 id="scene-title">Divergence measures spreading out.</h1>
         <p id="scene-intro">
-          A first interactive glimpse at Gauss's Law: a charge inside a transparent
-          surface creates electric flux through that surface.
+          Before Maxwell, meet the dot: divergence asks whether a field flows outward from a point,
+          inward toward it, or simply passes around without piling up.
         </p>
       </header>
 
       <nav class="equation-nav" aria-label="Choose a Maxwell equation scene">
-        <button class="equation-tab active" type="button" data-scene="gaussElectric">
+        <button class="equation-tab active" type="button" data-scene="divergence">
+          <span>0</span>
+          Divergence
+        </button>
+        <button class="equation-tab" type="button" data-scene="gaussElectric">
           <span>I</span>
           Gauss: Electricity
         </button>
@@ -45,12 +49,11 @@
       </nav>
 
       <section class="equation-card">
-        <p id="equation-label" class="equation-label">Differential form</p>
-        <div id="equation" class="equation">∇ · <strong>E</strong> = ρ / ε₀</div>
+        <p id="equation-label" class="equation-label">Operator meaning</p>
+        <div id="equation" class="equation">∇ · <strong>F</strong></div>
         <p id="equation-summary">
-          Positive charge acts like a source of electric field. Negative charge acts
-          like a sink. The more charge enclosed, the more electric field flows through
-          the surrounding surface.
+          Positive divergence means field flows outward like a source. Negative divergence means
+          field flows inward like a drain. Zero divergence means no net source or sink.
         </p>
       </section>
 
@@ -63,7 +66,7 @@
 
         <label class="toggle-row">
           <input id="show-surface" type="checkbox" checked />
-          Show Gaussian surface
+          Show measuring surface
         </label>
 
         <label class="toggle-row">
@@ -87,9 +90,8 @@
       <section class="lesson-card">
         <h2 id="lesson-title">What you are seeing</h2>
         <p id="lesson-copy">
-          The glass sphere is not a physical object. It is an imaginary measuring
-          surface. Gauss's Law says the net electric flux through that closed surface
-          depends only on the charge inside it.
+          The arrows are a vector field. When more arrows leave the transparent surface than enter it,
+          divergence is positive. When more enter than leave, divergence is negative.
         </p>
       </section>
     </aside>
@@ -103,6 +105,6 @@
       }
     }
   </script>
-  <script type="module" src="main.js?v=T6N8"></script>
+  <script type="module" src="main.js?v=D3V7"></script>
 </body>
 </html>
