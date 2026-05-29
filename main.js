@@ -8,6 +8,7 @@ const surfaceToggle = document.querySelector('#show-surface');
 const fieldToggle = document.querySelector('#show-arrows');
 const animateToggle = document.querySelector('#animate-field');
 const tabs = [...document.querySelectorAll('.equation-tab')];
+let activeScene = 'gaussElectric';
 
 const setText = (selector, value, asHtml = false) => {
   const el = document.querySelector(selector);
@@ -15,18 +16,61 @@ const setText = (selector, value, asHtml = false) => {
   else el.textContent = value;
 };
 
-function showMagnetismText() {
-  setText('#scene-badge', "Gauss's Law for Magnetism");
-  setText('#scene-status', 'Interactive scene');
-  setText('#scene-title', 'Magnetic field lines always close.');
-  setText('#scene-intro', 'A bar magnet bends the magnetic field into bright closed loops. The transparent sphere shows that magnetic field enters and leaves in equal measure.');
+const copy = {
+  gaussElectric: {
+    badge: "Gauss's Law for Electricity",
+    status: 'Interactive scene',
+    title: 'Electric charge makes space point outward.',
+    intro: 'A charge inside a transparent surface creates electric flux through that surface.',
+    equation: '∇ · <strong>E</strong> = ρ / ε₀',
+    summary: 'Positive charge acts like a source of electric field. Negative charge acts like a sink.',
+    lesson: 'The glass sphere is a Gaussian surface. The field arrows crossing it show electric flux: more enclosed charge means more net field through the surface.',
+  },
+  gaussMagnetic: {
+    badge: "Gauss's Law for Magnetism",
+    status: 'Interactive scene',
+    title: 'Magnetic field lines always close.',
+    intro: 'A bar magnet bends the magnetic field into bright closed loops. The transparent sphere shows that magnetic field enters and leaves in equal measure.',
+    equation: '∇ · <strong>B</strong> = 0',
+    summary: 'There are no isolated magnetic sources or sinks. The net magnetic flux through any closed surface is zero.',
+    lesson: 'The glowing loops leave the north pole, curve around, and return to the south pole. They cross the Gaussian surface both ways, so the total magnetic flux cancels.',
+  },
+  faraday: {
+    badge: "Faraday's Law",
+    status: 'Scene stub',
+    title: 'Changing magnetism makes electric fields curl.',
+    intro: 'Coming next: changing magnetic flux through a loop creates a circulating electric field.',
+    equation: '∇ × <strong>E</strong> = −∂<strong>B</strong>/∂t',
+    summary: 'Changing magnetic flux creates curling electric field.',
+    lesson: 'Planned scene: a pulsing magnetic field through a wire loop with swirling electric arrows.',
+  },
+  ampereMaxwell: {
+    badge: 'Ampère-Maxwell Law',
+    status: 'Scene stub',
+    title: 'Current makes magnetism curl.',
+    intro: 'Coming later: current and changing electric fields creating magnetic curls.',
+    equation: '∇ × <strong>B</strong> = μ₀<strong>J</strong> + μ₀ε₀∂<strong>E</strong>/∂t',
+    summary: 'Current and changing electric field create curling magnetic field.',
+    lesson: 'Planned scene: a current-carrying wire and capacitor displacement current.',
+  },
+};
+
+function setScene(name) {
+  activeScene = name;
+  const c = copy[name];
+  setText('#scene-badge', c.badge);
+  setText('#scene-status', c.status);
+  setText('#scene-title', c.title);
+  setText('#scene-intro', c.intro);
   setText('#equation-label', 'Differential form');
-  setText('#equation', '∇ · <strong>B</strong> = 0', true);
-  setText('#equation-summary', 'There are no isolated magnetic sources or sinks. The net magnetic flux through any closed surface is zero.');
-  setText('#lesson-title', 'What you are seeing');
-  setText('#lesson-copy', 'The glowing loops leave the north pole, curve around, and return to the south pole. They cross the Gaussian surface both ways, so the total magnetic flux cancels.');
-  document.querySelector('#placeholder-card').hidden = true;
-  tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.scene === 'gaussMagnetic'));
+  setText('#equation', c.equation, true);
+  setText('#equation-summary', c.summary);
+  setText('#lesson-title', name === 'faraday' || name === 'ampereMaxwell' ? 'Planned visualization' : 'What you are seeing');
+  setText('#lesson-copy', c.lesson);
+  document.querySelector('#placeholder-card').hidden = name === 'gaussElectric' || name === 'gaussMagnetic';
+  electricRoot.visible = name === 'gaussElectric' || !(name === 'gaussMagnetic');
+  magnetRoot.visible = name === 'gaussMagnetic';
+  tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.scene === name));
 }
 
 const scene = new THREE.Scene();
@@ -63,6 +107,16 @@ grid.material.transparent = true;
 grid.material.opacity = 0.12;
 root.add(grid);
 
+const electricRoot = new THREE.Group();
+const magnetRoot = new THREE.Group();
+root.add(electricRoot, magnetRoot);
+
+const blue = new THREE.Color(0x59d8ff);
+const red = new THREE.Color(0xff5470);
+const purple = new THREE.Color(0xb785ff);
+const gold = new THREE.Color(0xffd166);
+const white = new THREE.Color(0xffffff);
+
 const starPositions = new Float32Array(500 * 3);
 for (let i = 0; i < 500; i += 1) {
   const radius = THREE.MathUtils.randFloat(15, 36);
@@ -88,26 +142,55 @@ function makeLabel(text, color, scale = 1) {
   ctx.shadowBlur = 22;
   ctx.fillStyle = color;
   ctx.fillText(text, 256, 90);
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(labelCanvas),
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  }));
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(labelCanvas), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
   sprite.scale.set(1.25 * scale, 0.46 * scale, 1);
   return sprite;
 }
 
+function makeSurface(color, opacity = 0.08, wireOpacity = 0.12) {
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(2.75, 72, 48), new THREE.MeshPhysicalMaterial({ color, transparent: true, opacity, transmission: 0.2, thickness: 0.3, side: THREE.DoubleSide }));
+  const wire = new THREE.Mesh(new THREE.SphereGeometry(2.77, 32, 20), new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: wireOpacity }));
+  return { sphere, wire };
+}
+
+// Gauss electric scene
+const chargeCore = new THREE.Mesh(new THREE.SphereGeometry(0.38, 48, 32), new THREE.MeshStandardMaterial({ color: blue, emissive: blue, emissiveIntensity: 2.3, roughness: 0.2 }));
+const chargeGlow = new THREE.Mesh(new THREE.SphereGeometry(0.72, 48, 32), new THREE.MeshBasicMaterial({ color: blue, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false }));
+electricRoot.add(chargeCore, chargeGlow);
+const eSurface = makeSurface(0x79ddff, 0.12, 0.16);
+electricRoot.add(eSurface.sphere, eSurface.wire);
+const eArrows = new THREE.Group();
+const eDots = new THREE.Group();
+electricRoot.add(eArrows, eDots);
+const eDirs = [];
+function fibDirection(i, n) {
+  const y = 1 - (i / (n - 1)) * 2;
+  const radius = Math.sqrt(1 - y * y);
+  const theta = Math.PI * (3 - Math.sqrt(5)) * i;
+  return new THREE.Vector3(Math.cos(theta) * radius, y, Math.sin(theta) * radius).normalize();
+}
+for (let i = 0; i < 58; i += 1) {
+  const d = fibDirection(i, 58);
+  eDirs.push(d.clone());
+  [1.1, 1.75, 2.4, 3.1].forEach((r) => {
+    const arrow = new THREE.ArrowHelper(d, d.clone().multiplyScalar(r), 0.46, 0x59d8ff, 0.14, 0.08);
+    arrow.userData.d = d.clone();
+    arrow.userData.r = r;
+    eArrows.add(arrow);
+  });
+}
+for (let i = 0; i < 100; i += 1) {
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8), new THREE.MeshBasicMaterial({ color: 0xcdf7ff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }));
+  dot.userData.d = eDirs[i % eDirs.length].clone();
+  dot.userData.offset = Math.random();
+  eDots.add(dot);
+}
+
+// Gauss magnetism scene
 const magnet = new THREE.Group();
-const north = new THREE.Mesh(
-  new THREE.BoxGeometry(1.75, 0.82, 0.82),
-  new THREE.MeshStandardMaterial({ color: 0xff486d, emissive: 0x8a1330, emissiveIntensity: 0.95, metalness: 0.34, roughness: 0.18 }),
-);
+const north = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.82, 0.82), new THREE.MeshStandardMaterial({ color: 0xff486d, emissive: 0x8a1330, emissiveIntensity: 0.95, metalness: 0.34, roughness: 0.18 }));
 north.position.x = 0.88;
-const south = new THREE.Mesh(
-  new THREE.BoxGeometry(1.75, 0.82, 0.82),
-  new THREE.MeshStandardMaterial({ color: 0x4ddfff, emissive: 0x125d78, emissiveIntensity: 0.95, metalness: 0.34, roughness: 0.18 }),
-);
+const south = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.82, 0.82), new THREE.MeshStandardMaterial({ color: 0x4ddfff, emissive: 0x125d78, emissiveIntensity: 0.95, metalness: 0.34, roughness: 0.18 }));
 south.position.x = -0.88;
 const seam = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.9, 0.9), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }));
 magnet.add(north, south, seam);
@@ -116,32 +199,17 @@ nLabel.position.set(1.82, 0.82, 0.02);
 const sLabel = makeLabel('S', '#9aefff', 0.9);
 sLabel.position.set(-1.82, 0.82, 0.02);
 magnet.add(nLabel, sLabel);
-root.add(magnet);
-
-const sphere = new THREE.Mesh(
-  new THREE.SphereGeometry(2.75, 72, 48),
-  new THREE.MeshPhysicalMaterial({ color: 0x9d7cff, transparent: true, opacity: 0.055, transmission: 0.2, thickness: 0.3, side: THREE.DoubleSide }),
-);
-const sphereWire = new THREE.Mesh(
-  new THREE.SphereGeometry(2.77, 32, 20),
-  new THREE.MeshBasicMaterial({ color: 0xb785ff, wireframe: true, transparent: true, opacity: 0.09 }),
-);
-root.add(sphere, sphereWire);
-
+magnetRoot.add(magnet);
+const mSurface = makeSurface(0x9d7cff, 0.055, 0.09);
+magnetRoot.add(mSurface.sphere, mSurface.wire);
 const zeroFlux = makeLabel('NET FLUX = 0', '#fff2a8', 1.45);
 zeroFlux.position.set(0, -2.05, 0);
-root.add(zeroFlux);
-
+magnetRoot.add(zeroFlux);
 const fieldLines = new THREE.Group();
 const movingDots = new THREE.Group();
 const directionArrows = new THREE.Group();
-root.add(fieldLines, movingDots, directionArrows);
-
-const purple = new THREE.Color(0xb785ff);
-const gold = new THREE.Color(0xffd166);
-const white = new THREE.Color(0xffffff);
+magnetRoot.add(fieldLines, movingDots, directionArrows);
 const curves = [];
-
 function makeLoop(height, zOffset, side) {
   const points = [];
   for (let i = 0; i <= 90; i += 1) {
@@ -160,18 +228,13 @@ function makeLoop(height, zOffset, side) {
   }
   return new THREE.CatmullRomCurve3(points, true, 'catmullrom', 0.55);
 }
-
 [-0.95, -0.48, 0, 0.48, 0.95].forEach((zOffset) => {
   [1.05, 1.48, 1.92].forEach((height, heightIndex) => {
     [-1, 1].forEach((side) => {
       const curve = makeLoop(height, zOffset, side);
       curves.push(curve);
       const color = side > 0 ? 0xb785ff : 0xffd166;
-      const tube = new THREE.Mesh(
-        new THREE.TubeGeometry(curve, 180, 0.035 + heightIndex * 0.006, 12, true),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.96, blending: THREE.AdditiveBlending }),
-      );
-      fieldLines.add(tube);
+      fieldLines.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 180, 0.035 + heightIndex * 0.006, 12, true), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.96, blending: THREE.AdditiveBlending })));
       [0.18, 0.48, 0.78].forEach((spot) => {
         const arrow = new THREE.ArrowHelper(curve.getTangentAt(spot), curve.getPointAt(spot), 0.42, color, 0.15, 0.1);
         arrow.userData.curve = curve;
@@ -182,12 +245,8 @@ function makeLoop(height, zOffset, side) {
     });
   });
 });
-
 for (let i = 0; i < 120; i += 1) {
-  const dot = new THREE.Mesh(
-    new THREE.SphereGeometry(0.065, 14, 10),
-    new THREE.MeshBasicMaterial({ color: i % 2 ? 0xb785ff : 0xffd166, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }),
-  );
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.065, 14, 10), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xb785ff : 0xffd166, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
   dot.userData.curve = curves[i % curves.length];
   dot.userData.offset = Math.random();
   movingDots.add(dot);
@@ -204,26 +263,56 @@ function resize() {
   }
 }
 
-function update(time) {
+function updateElectric(time) {
+  const charge = Number(strengthSlider.value);
+  const magnitude = Math.abs(charge);
+  const positive = charge >= 0;
+  const color = positive ? blue : red;
+  const sign = positive ? 1 : -1;
+  readout.textContent = `${charge >= 0 ? '+' : ''}${charge.toFixed(1)} charge`;
+  chargeCore.material.color.copy(color);
+  chargeCore.material.emissive.copy(color);
+  chargeCore.material.emissiveIntensity = 1.2 + magnitude * 0.58;
+  chargeGlow.material.color.copy(color);
+  chargeGlow.material.opacity = 0.06 + magnitude * 0.045;
+  chargeGlow.scale.setScalar(0.88 + magnitude * 0.07 + Math.sin(time * 2.4) * 0.04);
+  eSurface.sphere.visible = surfaceToggle.checked;
+  eSurface.wire.visible = surfaceToggle.checked;
+  eArrows.visible = fieldToggle.checked;
+  eDots.visible = fieldToggle.checked && animateToggle.checked;
+  eSurface.sphere.rotation.y = time * 0.08;
+  eSurface.wire.rotation.y = -time * 0.06;
+  const arrowScale = THREE.MathUtils.mapLinear(magnitude, 0, 5, 0.25, 1.35);
+  eArrows.children.forEach((arrow, index) => {
+    const direction = arrow.userData.d.clone().multiplyScalar(sign);
+    arrow.position.copy(arrow.userData.d.clone().multiplyScalar(arrow.userData.r));
+    arrow.setDirection(direction);
+    arrow.setLength((0.27 + 0.26 * arrowScale) * (1 + 0.08 * Math.sin(time * 3 + index)), 0.14 * arrowScale, 0.08 * arrowScale);
+    arrow.setColor(color.clone().lerp(white, 0.3));
+  });
+  eDots.children.forEach((dot, index) => {
+    const cycle = (dot.userData.offset + time * (0.1 + magnitude * 0.035)) % 1;
+    const radius = THREE.MathUtils.lerp(0.56, 3.35, positive ? cycle : 1 - cycle);
+    dot.position.copy(dot.userData.d.clone().multiplyScalar(radius + 0.03 * Math.sin(time * 4 + index)));
+    dot.material.color.copy(color).lerp(white, 0.5);
+    dot.material.opacity = 0.18 + 0.58 * Math.sin(Math.PI * cycle);
+  });
+}
+
+function updateMagnetic(time) {
   const strength = Math.max(0.1, Math.abs(Number(strengthSlider.value)));
   readout.textContent = `${strength.toFixed(1)} loop strength`;
-
-  sphere.visible = surfaceToggle.checked;
-  sphereWire.visible = surfaceToggle.checked;
+  mSurface.sphere.visible = surfaceToggle.checked;
+  mSurface.wire.visible = surfaceToggle.checked;
   zeroFlux.material.opacity = surfaceToggle.checked ? 0.95 : 0.35;
   fieldLines.visible = fieldToggle.checked;
   directionArrows.visible = fieldToggle.checked;
   movingDots.visible = fieldToggle.checked && animateToggle.checked;
-
-  sphere.rotation.y = time * 0.04;
-  sphereWire.rotation.y = -time * 0.035;
-  sphereWire.rotation.z = time * 0.025;
+  mSurface.sphere.rotation.y = time * 0.04;
+  mSurface.wire.rotation.y = -time * 0.035;
+  mSurface.wire.rotation.z = time * 0.025;
   magnet.rotation.y = Math.sin(time * 0.42) * 0.06;
-
-  fieldLines.children.forEach((line, index) => {
-    line.material.opacity = 0.72 + 0.26 * Math.sin(time * 1.8 + index * 0.35) ** 2;
-  });
-
+  fieldLines.children.forEach((line, index) => { line.material.opacity = 0.72 + 0.26 * Math.sin(time * 1.8 + index * 0.35) ** 2; });
   const speed = 0.055 + strength * 0.035;
   directionArrows.children.forEach((arrow) => {
     const u = (arrow.userData.spot + time * speed * 0.4) % 1;
@@ -232,7 +321,6 @@ function update(time) {
     arrow.setLength(0.42 + strength * 0.025, 0.15, 0.1);
     arrow.setColor(arrow.userData.color);
   });
-
   movingDots.children.forEach((dot, index) => {
     const u = (dot.userData.offset + time * speed) % 1;
     dot.position.copy(dot.userData.curve.getPointAt(u));
@@ -246,23 +334,17 @@ function animate(now) {
   const time = now * 0.001;
   resize();
   controls.update();
-  update(time);
+  if (activeScene === 'gaussElectric' || activeScene === 'faraday' || activeScene === 'ampereMaxwell') updateElectric(time);
+  if (activeScene === 'gaussMagnetic') updateMagnetic(time);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
 
-tabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    if (tab.dataset.scene !== 'gaussMagnetic') {
-      setText('#scene-status', 'Scene stub');
-      setText('#scene-title', 'This build is focused on Gauss magnetism.');
-      setText('#scene-intro', 'Switch back to Gauss: Magnetism to inspect the current visual pass.');
-      tabs.forEach((each) => each.classList.toggle('active', each === tab));
-      return;
-    }
-    showMagnetismText();
-  });
-});
+tabs.forEach((tab) => tab.addEventListener('click', () => setScene(tab.dataset.scene)));
+strengthSlider.addEventListener('input', () => {});
+surfaceToggle.addEventListener('change', () => {});
+fieldToggle.addEventListener('change', () => {});
+animateToggle.addEventListener('change', () => {});
 
-showMagnetismText();
+setScene('gaussElectric');
 requestAnimationFrame(animate);
