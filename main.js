@@ -7,6 +7,96 @@ const chargeReadout = document.querySelector('#charge-readout');
 const showSurfaceToggle = document.querySelector('#show-surface');
 const showArrowsToggle = document.querySelector('#show-arrows');
 const animateToggle = document.querySelector('#animate-field');
+const sceneBadge = document.querySelector('#scene-badge');
+const sceneStatus = document.querySelector('#scene-status');
+const sceneTitle = document.querySelector('#scene-title');
+const sceneIntro = document.querySelector('#scene-intro');
+const equationLabel = document.querySelector('#equation-label');
+const equation = document.querySelector('#equation');
+const equationSummary = document.querySelector('#equation-summary');
+const lessonTitle = document.querySelector('#lesson-title');
+const lessonCopy = document.querySelector('#lesson-copy');
+const gaussControls = document.querySelector('#gauss-controls');
+const placeholderCard = document.querySelector('#placeholder-card');
+const placeholderCopy = document.querySelector('#placeholder-copy');
+const equationTabs = [...document.querySelectorAll('.equation-tab')];
+
+const sceneCopy = {
+  gaussElectric: {
+    badge: "Gauss's Law for Electricity",
+    status: 'Interactive scene',
+    title: 'Electric charge makes space point outward.',
+    intro: "A first interactive glimpse at Gauss's Law: a charge inside a transparent surface creates electric flux through that surface.",
+    label: 'Differential form',
+    equation: '∇ · <strong>E</strong> = ρ / ε₀',
+    summary: 'Positive charge acts like a source of electric field. Negative charge acts like a sink. The more charge enclosed, the more electric field flows through the surrounding surface.',
+    lessonTitle: 'What you are seeing',
+    lesson: "The glass sphere is not a physical object. It is an imaginary measuring surface. Gauss's Law says the net electric flux through that closed surface depends only on the charge inside it.",
+    placeholder: '',
+  },
+  gaussMagnetic: {
+    badge: "Gauss's Law for Magnetism",
+    status: 'Scene stub',
+    title: 'Magnetic field lines do not begin or end.',
+    intro: 'This scene will show magnetic field loops closing back on themselves around a magnet, with no isolated north or south magnetic charge hiding in the machinery.',
+    label: 'Differential form',
+    equation: '∇ · <strong>B</strong> = 0',
+    summary: 'Magnetism has no known monopole source. Magnetic field lines form closed loops, so the net magnetic flux through any closed surface is zero.',
+    lessonTitle: 'Planned visualization',
+    lesson: 'A bar magnet will sit inside a transparent surface while magnetic field loops enter and leave in equal measure. The surface catches no net beginning or ending of the magnetic field.',
+    placeholder: 'Next build: looping magnetic field curves around a bar magnet, plus a flux-balance surface showing equal field entering and leaving.',
+  },
+  faraday: {
+    badge: "Faraday's Law",
+    status: 'Scene stub',
+    title: 'Changing magnetism makes electric fields curl.',
+    intro: 'This scene will make induction visible: a changing magnetic field through a loop creates a circulating electric field around that changing flux.',
+    label: 'Differential form',
+    equation: '∇ × <strong>E</strong> = −∂<strong>B</strong>/∂t',
+    summary: 'When magnetic flux changes over time, the electric field curls. This is the engine behind generators, transformers, and electromagnetic induction.',
+    lessonTitle: 'Planned visualization',
+    lesson: 'A pulsing magnetic field will pass through a wire loop while electric field arrows swirl around it. Faster change means stronger curl.',
+    placeholder: 'Next build: animated magnetic flux through a loop, with curling electric arrows and a slider for flux-change speed.',
+  },
+  ampereMaxwell: {
+    badge: 'Ampère-Maxwell Law',
+    status: 'Scene stub',
+    title: 'Current and changing electric fields make magnetism curl.',
+    intro: "This scene will connect ordinary current with Maxwell's crucial upgrade: even a changing electric field can generate a magnetic field.",
+    label: 'Differential form',
+    equation: '∇ × <strong>B</strong> = μ₀<strong>J</strong> + μ₀ε₀∂<strong>E</strong>/∂t',
+    summary: 'Magnetic fields curl around electric current. Maxwell added that changing electric fields also create curling magnetic fields, completing the symmetry that allows light to travel.',
+    lessonTitle: 'Planned visualization',
+    lesson: 'A current-carrying wire will show magnetic loops curling around it, then a capacitor view will show displacement current bridging the gap.',
+    placeholder: 'Next build: magnetic field rings around a wire and a capacitor scene showing changing electric field acting like current.',
+  },
+};
+
+let activeScene = 'gaussElectric';
+
+function setScene(nextScene) {
+  activeScene = nextScene;
+  const copy = sceneCopy[nextScene];
+
+  sceneBadge.textContent = copy.badge;
+  sceneStatus.textContent = copy.status;
+  sceneTitle.textContent = copy.title;
+  sceneIntro.textContent = copy.intro;
+  equationLabel.textContent = copy.label;
+  equation.innerHTML = copy.equation;
+  equationSummary.textContent = copy.summary;
+  lessonTitle.textContent = copy.lessonTitle;
+  lessonCopy.textContent = copy.lesson;
+
+  const isGaussElectric = nextScene === 'gaussElectric';
+  gaussControls.classList.toggle('is-disabled', !isGaussElectric);
+  placeholderCard.hidden = isGaussElectric;
+  placeholderCopy.textContent = copy.placeholder;
+
+  equationTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.scene === nextScene);
+  });
+}
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x060817, 0.055);
@@ -216,19 +306,20 @@ function updateFieldVisuals(timeSeconds = 0) {
   const activeColor = positive ? coolElectric : warmElectric;
   const directionSign = positive ? 1 : -1;
   const strengthScale = THREE.MathUtils.mapLinear(magnitude, 0, 5, 0.25, 1.35);
+  const active = activeScene === 'gaussElectric';
 
   chargeReadout.textContent = `${charge >= 0 ? '+' : ''}${charge.toFixed(1)}`;
 
   setObjectColor(chargeCore, activeColor);
   setObjectColor(chargeGlow, activeColor);
-  chargeCore.material.emissiveIntensity = 1.2 + magnitude * 0.58;
-  chargeGlow.material.opacity = 0.06 + magnitude * 0.045;
+  chargeCore.material.emissiveIntensity = active ? 1.2 + magnitude * 0.58 : 0.42;
+  chargeGlow.material.opacity = active ? 0.06 + magnitude * 0.045 : 0.035;
   chargeGlow.scale.setScalar(0.86 + Math.sin(timeSeconds * 2.4) * 0.04 + magnitude * 0.07);
 
   gaussianSurface.visible = showSurfaceToggle.checked;
   surfaceWire.visible = showSurfaceToggle.checked;
   arrows.visible = showArrowsToggle.checked;
-  pulseParticles.visible = animateToggle.checked && showArrowsToggle.checked;
+  pulseParticles.visible = active && animateToggle.checked && showArrowsToggle.checked;
 
   gaussianSurface.rotation.y = timeSeconds * 0.08;
   surfaceWire.rotation.y = timeSeconds * -0.06;
@@ -243,9 +334,9 @@ function updateFieldVisuals(timeSeconds = 0) {
 
     arrow.position.copy(originDirection.clone().multiplyScalar(baseRadius));
     arrow.setDirection(baseDirection);
-    arrow.setLength(length, 0.13 * strengthScale, 0.075 * strengthScale);
+    arrow.setLength(active ? length : length * 0.42, 0.13 * strengthScale, 0.075 * strengthScale);
 
-    arrowColor.copy(activeColor).lerp(whiteHot, 0.22 + Math.min(0.45, magnitude * 0.05));
+    arrowColor.copy(activeColor).lerp(whiteHot, active ? 0.22 + Math.min(0.45, magnitude * 0.05) : 0.05);
     arrow.setColor(arrowColor);
   });
 
@@ -276,6 +367,9 @@ chargeSlider.addEventListener('input', () => updateFieldVisuals(performance.now(
 showSurfaceToggle.addEventListener('change', () => updateFieldVisuals(performance.now() * 0.001));
 showArrowsToggle.addEventListener('change', () => updateFieldVisuals(performance.now() * 0.001));
 animateToggle.addEventListener('change', () => updateFieldVisuals(performance.now() * 0.001));
+equationTabs.forEach((tab) => {
+  tab.addEventListener('click', () => setScene(tab.dataset.scene));
+});
 
 function animate(now) {
   const timeSeconds = now * 0.001;
@@ -286,5 +380,6 @@ function animate(now) {
   requestAnimationFrame(animate);
 }
 
+setScene('gaussElectric');
 updateFieldVisuals();
 requestAnimationFrame(animate);
