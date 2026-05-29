@@ -1,0 +1,186 @@
+:root {
+  --bg: #060817;
+  --panel: rgba(10, 16, 36, 0.82);
+  --panel-strong: rgba(15, 25, 55, 0.94);
+  --text: #edf6ff;
+  --muted: #9fb2d6;
+  --electric: #59d8ff;
+  --electric-hot: #ff5470;
+  --glass: rgba(116, 218, 255, 0.14);
+  --line: rgba(178, 230, 255, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(54, 145, 255, 0.28), transparent 28rem),
+    radial-gradient(circle at 72% 70%, rgba(255, 84, 112, 0.18), transparent 25rem),
+    linear-gradient(135deg, #03040d 0%, var(--bg) 48%, #0a1028 100%);
+}
+
+#app-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  width: 100vw;
+  height: 100vh;
+}
+
+#scene-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+#maxwell-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scene-badge {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(4, 8, 22, 0.52);
+  color: #d9f5ff;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 30px rgba(89, 216, 255, 0.16);
+}
+
+#control-panel {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(22px);
+  box-shadow: -18px 0 60px rgba(0, 0, 0, 0.35);
+  overflow-y: auto;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--electric);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 12px;
+  font-size: clamp(2rem, 5vw, 3.8rem);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+h2 {
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.equation-card,
+.lesson-card,
+.controls {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 18px;
+  background: var(--panel-strong);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+}
+
+.equation-label {
+  margin-bottom: 6px;
+  color: var(--electric);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.equation {
+  margin-bottom: 12px;
+  font-size: 2.15rem;
+  line-height: 1.2;
+  text-shadow: 0 0 24px rgba(89, 216, 255, 0.4);
+}
+
+.controls {
+  display: grid;
+  gap: 15px;
+}
+
+.controls label {
+  display: grid;
+  gap: 8px;
+  color: #dcecff;
+  font-size: 0.95rem;
+}
+
+.controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--electric);
+}
+
+.toggle-row {
+  display: flex !important;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px !important;
+}
+
+.toggle-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--electric);
+}
+
+#charge-readout {
+  justify-self: end;
+  color: var(--electric);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  body {
+    overflow: auto;
+  }
+
+  #app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: 60vh auto;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  #control-panel {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
