@@ -12,7 +12,7 @@
       <canvas id="maxwell-canvas"></canvas>
       <div id="scene-badge" class="scene-badge">Divergence Operator</div>
       <div id="scene-status" class="scene-status">Interactive intro</div>
-      <div id="build-code" class="build-code" aria-label="Build code">D3V7</div>
+      <div id="build-code" class="build-code" aria-label="Build code">W2H9</div>
     </section>
 
     <aside id="control-panel" aria-label="Visualization controls and explanation">
@@ -105,6 +105,64 @@
       }
     }
   </script>
-  <script type="module" src="main.js?v=D3V7"></script>
+  <script type="module" src="main.js?v=W2H9"></script>
+  <script>
+    (() => {
+      const scenes = {
+        divergence: {
+          badge: 'Divergence Operator',
+          status: 'Interactive intro',
+          title: 'Divergence measures spreading out.',
+          intro: 'Before Maxwell, meet the dot: divergence asks whether a field flows outward from a point, inward toward it, or simply passes around without piling up.',
+          label: 'Operator meaning',
+          equation: '∇ · <strong>F</strong>',
+          summary: 'Positive divergence means field flows outward like a source. Negative divergence means field flows inward like a drain. Zero divergence means no net source or sink.',
+          lessonTitle: 'What you are seeing',
+          lesson: 'The arrows are a vector field. When more arrows leave the transparent surface than enter it, divergence is positive. When more enter than leave, divergence is negative.'
+        },
+        gaussElectric: {
+          badge: "Gauss's Law for Electricity",
+          status: 'Interactive scene',
+          title: 'Electric charge makes space point outward.',
+          intro: 'A charge inside a transparent surface creates electric flux through that surface.',
+          label: 'Differential form',
+          equation: '∇ · <strong>E</strong> = ρ / ε₀',
+          summary: 'Electric charge is the source or sink of electric field.',
+          lessonTitle: 'What you are seeing',
+          lesson: 'A positive charge sends field outward. A negative charge pulls field inward. Divergence is the local source-strength of that field.'
+        },
+        gaussMagnetic: {
+          badge: "Gauss's Law for Magnetism",
+          status: 'Interactive scene',
+          title: 'Magnetic field lines always close.',
+          intro: 'A bar magnet bends the magnetic field into bright closed loops.',
+          label: 'Differential form',
+          equation: '∇ · <strong>B</strong> = 0',
+          summary: 'Magnetic fields have zero divergence: no isolated magnetic source or sink.',
+          lessonTitle: 'What you are seeing',
+          lesson: 'The field loops cross the surface both ways. What enters also leaves, so the net magnetic flux is zero.'
+        }
+      };
+      function applyScene(name) {
+        const item = scenes[name];
+        if (!item) return;
+        document.querySelector('#scene-badge').textContent = item.badge;
+        document.querySelector('#scene-status').textContent = item.status;
+        document.querySelector('#scene-title').textContent = item.title;
+        document.querySelector('#scene-intro').textContent = item.intro;
+        document.querySelector('#equation-label').textContent = item.label;
+        document.querySelector('#equation').innerHTML = item.equation;
+        document.querySelector('#equation-summary').textContent = item.summary;
+        document.querySelector('#lesson-title').textContent = item.lessonTitle;
+        document.querySelector('#lesson-copy').textContent = item.lesson;
+        document.querySelectorAll('.equation-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.scene === name));
+      }
+      document.addEventListener('click', (event) => {
+        const tab = event.target.closest('.equation-tab');
+        if (tab) window.setTimeout(() => applyScene(tab.dataset.scene), 30);
+      });
+      window.setTimeout(() => applyScene('divergence'), 400);
+    })();
+  </script>
 </body>
 </html>
