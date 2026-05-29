@@ -8,7 +8,7 @@ const surfaceToggle = document.querySelector('#show-surface');
 const fieldToggle = document.querySelector('#show-arrows');
 const animateToggle = document.querySelector('#animate-field');
 const tabs = [...document.querySelectorAll('.equation-tab')];
-let activeScene = 'gaussElectric';
+let activeScene = 'divergence';
 
 const setText = (selector, value, asHtml = false) => {
   const el = document.querySelector(selector);
@@ -17,6 +17,15 @@ const setText = (selector, value, asHtml = false) => {
 };
 
 const copy = {
+  divergence: {
+    badge: 'Divergence Operator',
+    status: 'Interactive intro',
+    title: 'Divergence measures spreading out.',
+    intro: 'Before Maxwell, meet the dot: divergence asks whether a field flows outward from a point, inward toward it, or simply passes around without piling up.',
+    equation: '∇ · <strong>F</strong>',
+    summary: 'Positive divergence means field flows outward like a source. Negative divergence means field flows inward like a drain. Zero divergence means no net source or sink.',
+    lesson: 'The arrows are a vector field. When more arrows leave the transparent surface than enter it, divergence is positive. When more enter than leave, divergence is negative.',
+  },
   gaussElectric: {
     badge: "Gauss's Law for Electricity",
     status: 'Interactive scene',
@@ -62,13 +71,14 @@ function setScene(name) {
   setText('#scene-status', c.status);
   setText('#scene-title', c.title);
   setText('#scene-intro', c.intro);
-  setText('#equation-label', 'Differential form');
+  setText('#equation-label', name === 'divergence' ? 'Operator meaning' : 'Differential form');
   setText('#equation', c.equation, true);
   setText('#equation-summary', c.summary);
   setText('#lesson-title', name === 'faraday' || name === 'ampereMaxwell' ? 'Planned visualization' : 'What you are seeing');
   setText('#lesson-copy', c.lesson);
-  document.querySelector('#placeholder-card').hidden = name === 'gaussElectric' || name === 'gaussMagnetic';
-  electricRoot.visible = name === 'gaussElectric' || !(name === 'gaussMagnetic');
+  document.querySelector('#placeholder-card').hidden = name === 'divergence' || name === 'gaussElectric' || name === 'gaussMagnetic';
+  divergenceRoot.visible = name === 'divergence';
+  electricRoot.visible = name === 'gaussElectric' || name === 'faraday' || name === 'ampereMaxwell';
   magnetRoot.visible = name === 'gaussMagnetic';
   tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.scene === name));
 }
@@ -107,14 +117,16 @@ grid.material.transparent = true;
 grid.material.opacity = 0.12;
 root.add(grid);
 
+const divergenceRoot = new THREE.Group();
 const electricRoot = new THREE.Group();
 const magnetRoot = new THREE.Group();
-root.add(electricRoot, magnetRoot);
+root.add(divergenceRoot, electricRoot, magnetRoot);
 
 const blue = new THREE.Color(0x59d8ff);
 const red = new THREE.Color(0xff5470);
 const purple = new THREE.Color(0xb785ff);
 const gold = new THREE.Color(0xffd166);
+const green = new THREE.Color(0x8dffb0);
 const white = new THREE.Color(0xffffff);
 
 const starPositions = new Float32Array(500 * 3);
@@ -153,7 +165,40 @@ function makeSurface(color, opacity = 0.08, wireOpacity = 0.12) {
   return { sphere, wire };
 }
 
-// Gauss electric scene
+const divSurface = makeSurface(0x8dffb0, 0.1, 0.15);
+divergenceRoot.add(divSurface.sphere, divSurface.wire);
+const divCore = new THREE.Mesh(new THREE.SphereGeometry(0.25, 32, 20), new THREE.MeshStandardMaterial({ color: green, emissive: green, emissiveIntensity: 1.6 }));
+divergenceRoot.add(divCore);
+const divLabel = makeLabel('SOURCE', '#8dffb0', 1.1);
+divLabel.position.set(0, -1.75, 0);
+divergenceRoot.add(divLabel);
+const divArrows = new THREE.Group();
+const divDots = new THREE.Group();
+divergenceRoot.add(divArrows, divDots);
+const divDirections = [];
+function fibDirection(i, n) {
+  const y = 1 - (i / (n - 1)) * 2;
+  const radius = Math.sqrt(1 - y * y);
+  const theta = Math.PI * (3 - Math.sqrt(5)) * i;
+  return new THREE.Vector3(Math.cos(theta) * radius, y, Math.sin(theta) * radius).normalize();
+}
+for (let i = 0; i < 54; i += 1) {
+  const d = fibDirection(i, 54);
+  divDirections.push(d.clone());
+  [0.85, 1.45, 2.05, 2.65].forEach((r) => {
+    const arrow = new THREE.ArrowHelper(d, d.clone().multiplyScalar(r), 0.4, 0x8dffb0, 0.13, 0.08);
+    arrow.userData.d = d.clone();
+    arrow.userData.r = r;
+    divArrows.add(arrow);
+  });
+}
+for (let i = 0; i < 90; i += 1) {
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8), new THREE.MeshBasicMaterial({ color: 0xd8ffe4, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }));
+  dot.userData.d = divDirections[i % divDirections.length].clone();
+  dot.userData.offset = Math.random();
+  divDots.add(dot);
+}
+
 const chargeCore = new THREE.Mesh(new THREE.SphereGeometry(0.38, 48, 32), new THREE.MeshStandardMaterial({ color: blue, emissive: blue, emissiveIntensity: 2.3, roughness: 0.2 }));
 const chargeGlow = new THREE.Mesh(new THREE.SphereGeometry(0.72, 48, 32), new THREE.MeshBasicMaterial({ color: blue, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false }));
 electricRoot.add(chargeCore, chargeGlow);
@@ -163,12 +208,6 @@ const eArrows = new THREE.Group();
 const eDots = new THREE.Group();
 electricRoot.add(eArrows, eDots);
 const eDirs = [];
-function fibDirection(i, n) {
-  const y = 1 - (i / (n - 1)) * 2;
-  const radius = Math.sqrt(1 - y * y);
-  const theta = Math.PI * (3 - Math.sqrt(5)) * i;
-  return new THREE.Vector3(Math.cos(theta) * radius, y, Math.sin(theta) * radius).normalize();
-}
 for (let i = 0; i < 58; i += 1) {
   const d = fibDirection(i, 58);
   eDirs.push(d.clone());
@@ -186,7 +225,6 @@ for (let i = 0; i < 100; i += 1) {
   eDots.add(dot);
 }
 
-// Gauss magnetism scene
 const magnet = new THREE.Group();
 const north = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.82, 0.82), new THREE.MeshStandardMaterial({ color: 0xff486d, emissive: 0x8a1330, emissiveIntensity: 0.95, metalness: 0.34, roughness: 0.18 }));
 north.position.x = 0.88;
@@ -263,40 +301,61 @@ function resize() {
   }
 }
 
-function updateElectric(time) {
-  const charge = Number(strengthSlider.value);
-  const magnitude = Math.abs(charge);
-  const positive = charge >= 0;
-  const color = positive ? blue : red;
-  const sign = positive ? 1 : -1;
-  readout.textContent = `${charge >= 0 ? '+' : ''}${charge.toFixed(1)} charge`;
-  chargeCore.material.color.copy(color);
-  chargeCore.material.emissive.copy(color);
-  chargeCore.material.emissiveIntensity = 1.2 + magnitude * 0.58;
-  chargeGlow.material.color.copy(color);
-  chargeGlow.material.opacity = 0.06 + magnitude * 0.045;
-  chargeGlow.scale.setScalar(0.88 + magnitude * 0.07 + Math.sin(time * 2.4) * 0.04);
-  eSurface.sphere.visible = surfaceToggle.checked;
-  eSurface.wire.visible = surfaceToggle.checked;
-  eArrows.visible = fieldToggle.checked;
-  eDots.visible = fieldToggle.checked && animateToggle.checked;
-  eSurface.sphere.rotation.y = time * 0.08;
-  eSurface.wire.rotation.y = -time * 0.06;
+function updateRadialScene(time, group) {
+  const value = Number(strengthSlider.value);
+  const magnitude = Math.abs(value);
+  const positive = value >= 0;
+  const color = activeScene === 'divergence' ? (positive ? green : red) : (positive ? blue : red);
+  const arrows = group === divergenceRoot ? divArrows : eArrows;
+  const dots = group === divergenceRoot ? divDots : eDots;
+  const surface = group === divergenceRoot ? divSurface : eSurface;
+  const center = group === divergenceRoot ? divCore : chargeCore;
+  const glow = group === divergenceRoot ? null : chargeGlow;
+  readout.textContent = activeScene === 'divergence'
+    ? `${value >= 0 ? '+' : ''}${value.toFixed(1)} divergence`
+    : `${value >= 0 ? '+' : ''}${value.toFixed(1)} charge`;
+  center.material.color.copy(color);
+  center.material.emissive.copy(color);
+  center.material.emissiveIntensity = 1.1 + magnitude * 0.5;
+  if (glow) {
+    glow.material.color.copy(color);
+    glow.material.opacity = 0.06 + magnitude * 0.045;
+    glow.scale.setScalar(0.88 + magnitude * 0.07 + Math.sin(time * 2.4) * 0.04);
+  }
+  if (activeScene === 'divergence') {
+    divLabel.textContent = '';
+    divLabel.material.opacity = 1;
+  }
+  surface.sphere.visible = surfaceToggle.checked;
+  surface.wire.visible = surfaceToggle.checked;
+  arrows.visible = fieldToggle.checked;
+  dots.visible = fieldToggle.checked && animateToggle.checked;
+  surface.sphere.rotation.y = time * 0.08;
+  surface.wire.rotation.y = -time * 0.06;
   const arrowScale = THREE.MathUtils.mapLinear(magnitude, 0, 5, 0.25, 1.35);
-  eArrows.children.forEach((arrow, index) => {
-    const direction = arrow.userData.d.clone().multiplyScalar(sign);
+  arrows.children.forEach((arrow, index) => {
+    const direction = arrow.userData.d.clone().multiplyScalar(positive ? 1 : -1);
     arrow.position.copy(arrow.userData.d.clone().multiplyScalar(arrow.userData.r));
     arrow.setDirection(direction);
     arrow.setLength((0.27 + 0.26 * arrowScale) * (1 + 0.08 * Math.sin(time * 3 + index)), 0.14 * arrowScale, 0.08 * arrowScale);
     arrow.setColor(color.clone().lerp(white, 0.3));
   });
-  eDots.children.forEach((dot, index) => {
+  dots.children.forEach((dot, index) => {
     const cycle = (dot.userData.offset + time * (0.1 + magnitude * 0.035)) % 1;
     const radius = THREE.MathUtils.lerp(0.56, 3.35, positive ? cycle : 1 - cycle);
     dot.position.copy(dot.userData.d.clone().multiplyScalar(radius + 0.03 * Math.sin(time * 4 + index)));
     dot.material.color.copy(color).lerp(white, 0.5);
     dot.material.opacity = 0.18 + 0.58 * Math.sin(Math.PI * cycle);
   });
+  if (activeScene === 'divergence') {
+    const labelText = Math.abs(value) < 0.25 ? 'ZERO DIVERGENCE' : (positive ? 'SOURCE' : 'SINK');
+    const labelColor = Math.abs(value) < 0.25 ? '#d7e2ff' : (positive ? '#8dffb0' : '#ff8da2');
+    divergenceRoot.remove(divLabel);
+    const newLabel = makeLabel(labelText, labelColor, labelText === 'ZERO DIVERGENCE' ? 1.35 : 1.1);
+    newLabel.position.set(0, -1.75, 0);
+    divLabel.copy(newLabel);
+    divergenceRoot.add(divLabel);
+  }
 }
 
 function updateMagnetic(time) {
@@ -334,17 +393,14 @@ function animate(now) {
   const time = now * 0.001;
   resize();
   controls.update();
-  if (activeScene === 'gaussElectric' || activeScene === 'faraday' || activeScene === 'ampereMaxwell') updateElectric(time);
+  if (activeScene === 'divergence') updateRadialScene(time, divergenceRoot);
+  if (activeScene === 'gaussElectric' || activeScene === 'faraday' || activeScene === 'ampereMaxwell') updateRadialScene(time, electricRoot);
   if (activeScene === 'gaussMagnetic') updateMagnetic(time);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
 
 tabs.forEach((tab) => tab.addEventListener('click', () => setScene(tab.dataset.scene)));
-strengthSlider.addEventListener('input', () => {});
-surfaceToggle.addEventListener('change', () => {});
-fieldToggle.addEventListener('change', () => {});
-animateToggle.addEventListener('change', () => {});
 
-setScene('gaussElectric');
+setScene('divergence');
 requestAnimationFrame(animate);
